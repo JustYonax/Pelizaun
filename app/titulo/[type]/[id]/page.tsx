@@ -20,6 +20,7 @@ import { SeasonBrowser } from "@/components/detail/season-browser"
 import { MediaGallery } from "@/components/detail/media-gallery"
 import { ReviewsSection } from "@/components/detail/reviews-section"
 import { WatchProviders } from "@/components/detail/watch-providers"
+import { AddonStreams } from "@/components/detail/addon-streams"
 
 type Params = { type: string; id: string }
 
@@ -199,6 +200,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<Para
           </div>
 
           <aside className="flex flex-col gap-6">
+            <AddonStreams mediaType={detail.mediaType} id={detail.id} title={detail.title} />
             <WatchProviders providers={detail.providers} link={detail.providersLink} />
 
             <div className="glass flex flex-col gap-4 rounded-2xl p-5">

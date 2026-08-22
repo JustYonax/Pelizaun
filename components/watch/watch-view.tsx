@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import useSWR from "swr"
-import { ArrowLeft, PlugZap, Radio } from "lucide-react"
+import { ArrowLeft, PlugZap } from "lucide-react"
 import type { MediaDetail, StreamOption } from "@/lib/types"
 import { formatRuntime, typeLabel } from "@/lib/format"
 import { ADDONS, STATUS_STYLES } from "@/lib/addons"
@@ -11,23 +12,29 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { FavoriteButton, WatchlistButton } from "@/components/media/library-actions"
 import { EpisodePicker } from "@/components/watch/episode-picker"
-import { readCustomAddons } from "@/lib/addon-protocol"
+import { Player } from "@/components/player/Player"
+import { Spinner } from "@/components/ui/spinner"
+import { addonProvides, readCustomAddons } from "@/lib/addon-protocol"
 
 const fetcher = (url: string) =>
-  fetch(url).then((r) => r.json() as Promise<{ streams: StreamOption[]; warning?: string | null }>)
+  fetch(url).then((response) => response.json() as Promise<{ streams: StreamOption[]; warning?: string | null }>)
 
 export function WatchView({ item }: { item: MediaDetail }) {
+  const searchParams = useSearchParams()
+  const requestedSource = searchParams.get("source")
   const [season, setSeason] = useState(
-    item.seasons.find((s) => s.seasonNumber === 1)?.seasonNumber ?? item.seasons[0]?.seasonNumber ?? 1,
+    item.seasons.find((entry) => entry.seasonNumber === 1)?.seasonNumber ?? item.seasons[0]?.seasonNumber ?? 1,
   )
   const [episode, setEpisode] = useState<number | null>(item.mediaType === "tv" ? 1 : null)
   const [addonUrls, setAddonUrls] = useState<string[]>([])
 
   useEffect(() => {
-    const sync = () => setAddonUrls(
-      readCustomAddons().filter((addon) => addon.enabled && addon.capabilities.includes("streams"))
-        .map((addon) => addon.manifestUrl),
-    )
+    const sync = () =>
+      setAddonUrls(
+        readCustomAddons()
+          .filter((addon) => addonProvides(addon, "streams"))
+          .map((addon) => addon.manifestUrl),
+      )
     sync()
     window.addEventListener("pelizaun:addons-changed", sync)
     window.addEventListener("storage", sync)
@@ -37,7 +44,7 @@ export function WatchView({ item }: { item: MediaDetail }) {
     }
   }, [])
 
-  const sources = ADDONS.filter((a) => a.category === "reproduccion")
+  const sources = ADDONS.filter((addon) => addon.category === "reproduccion")
   const query = new URLSearchParams({
     type: item.mediaType,
     id: String(item.id),
@@ -49,22 +56,27 @@ export function WatchView({ item }: { item: MediaDetail }) {
   }
   addonUrls.forEach((url) => query.append("addon", url))
 
-  const { data: streamsData } = useSWR(`/api/streams?${query.toString()}`, fetcher)
+  const { data: streamsData, isLoading } = useSWR(
+    addonUrls.length ? `/api/streams?${query.toString()}` : null,
+    fetcher,
+  )
   const streams = streamsData?.streams ?? []
   const streamWarning = streamsData?.warning ?? null
-  const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null)
+  const [selectedStreamId, setSelectedStreamId] = useState<string | null>(requestedSource)
 
   useEffect(() => {
     setSelectedStreamId((current) => {
       if (!streams.length) return null
+      if (requestedSource && streams.some((stream) => stream.id === requestedSource && stream.playable !== false)) {
+        return requestedSource
+      }
       if (current && streams.some((stream) => stream.id === current)) return current
-      return streams[0]?.id ?? null
+      return streams.find((stream) => stream.playable !== false)?.id ?? streams[0]?.id ?? null
     })
-  }, [streams])
+  }, [streams, requestedSource])
 
   const selectedStream =
-    streams.find((stream) => stream.id === selectedStreamId) ?? (streams[0] ? streams[0] : null)
-  const isEmbedStream = selectedStream?.url.includes("youtube-nocookie.com/embed/")
+    streams.find((stream) => stream.id === selectedStreamId) ?? streams.find((stream) => stream.playable !== false) ?? null
 
   const subtitle =
     item.mediaType === "tv" && episode
@@ -91,39 +103,7 @@ export function WatchView({ item }: { item: MediaDetail }) {
         )}
       >
         <div className="flex flex-col gap-4">
-          <div className="ring-border/60 relative aspect-video w-full overflow-hidden rounded-2xl bg-black ring-1">
-            {selectedStream ? (
-              <>
-                {isEmbedStream ? (
-                  <iframe
-                    src={selectedStream.url}
-                    title={`Reproduciendo ${selectedStream.label}`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="size-full border-0"
-                  />
-                ) : (
-                  <video
-                    key={selectedStream.url}
-                    src={selectedStream.url}
-                    controls
-                    playsInline
-                    className="size-full"
-                  />
-                )}
-                <span className="glass pointer-events-none absolute top-3 left-3 rounded-full px-3 py-1 text-[11px] font-semibold">
-                  {selectedStream.provider} · {selectedStream.quality}
-                </span>
-              </>
-            ) : (
-              <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-                <Radio className="size-8" />
-                <p className="max-w-xs text-sm">
-                  No hay una fuente disponible. Instala un addon compatible en Addons y APIs.
-                </p>
-              </div>
-            )}
-          </div>
+          <Player stream={selectedStream} title={item.title} />
 
           <div className="glass flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4">
             <div className="flex min-w-0 flex-col gap-1">
@@ -153,8 +133,8 @@ export function WatchView({ item }: { item: MediaDetail }) {
               Fuentes de reproducción
             </div>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              Las fuentes se obtienen de tus addons activos. Solo se aceptan streams HTTPS
-              directos; los trailers se mantienen separados de la reproducción.
+              Las fuentes se obtienen de tus addons activos, en el orden de prioridad de
+              Addons y APIs. Solo se reproducen streams HTTPS directos (incluido Debrid).
             </p>
             <div className="flex flex-wrap gap-2">
               {sources.map((source) => {
@@ -170,24 +150,35 @@ export function WatchView({ item }: { item: MediaDetail }) {
                 )
               })}
             </div>
+            {isLoading ? (
+              <p className="text-muted-foreground flex items-center gap-2 text-xs">
+                <Spinner />
+                Consultando addons…
+              </p>
+            ) : null}
             {streams.length ? (
               <div className="flex flex-col gap-2">
                 {streams.map((stream) => (
                   <button
                     key={stream.id}
                     type="button"
-                    onClick={() => setSelectedStreamId(stream.id)}
+                    onClick={() => {
+                      if (stream.playable === false) return
+                      setSelectedStreamId(stream.id)
+                    }}
                     className={cn(
                       "flex w-full items-start justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-colors",
                       selectedStream?.id === stream.id
                         ? "border-primary/60 bg-primary/10"
                         : "border-border/60 hover:bg-accent/50",
+                      stream.playable === false ? "cursor-not-allowed opacity-60" : "",
                     )}
                   >
                     <div className="flex min-w-0 flex-col">
                       <span className="text-sm font-semibold">{stream.provider}</span>
                       <span className="text-muted-foreground text-xs">
                         {stream.isSubscription ? "Subscription" : "Free"} · {stream.quality}
+                        {stream.size ? ` · ${stream.size}` : ""}
                       </span>
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
@@ -201,11 +192,11 @@ export function WatchView({ item }: { item: MediaDetail }) {
                   </button>
                 ))}
               </div>
-            ) : (
+            ) : !isLoading ? (
               <p className="text-muted-foreground text-xs">
                 No hay streams disponibles para esta selección.
               </p>
-            )}
+            ) : null}
             {streamWarning ? (
               <p className="text-[var(--warning)] text-xs leading-relaxed">{streamWarning}</p>
             ) : null}

@@ -1,9 +1,11 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { getDetail } from "@/lib/tmdb"
 import type { MediaType } from "@/lib/types"
 import { AppShell } from "@/components/shell/app-shell"
 import { WatchView } from "@/components/watch/watch-view"
+import { Spinner } from "@/components/ui/spinner"
 
 type Params = { type: string; id: string }
 
@@ -34,7 +36,16 @@ export default async function WatchPage({ params }: { params: Promise<Params> })
 
   return (
     <AppShell>
-      <WatchView item={detail} />
+      <Suspense
+        fallback={
+          <div className="text-muted-foreground flex min-h-[50vh] items-center justify-center gap-2 text-sm">
+            <Spinner />
+            Cargando reproductor…
+          </div>
+        }
+      >
+        <WatchView item={detail} />
+      </Suspense>
     </AppShell>
   )
 }

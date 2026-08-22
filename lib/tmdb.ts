@@ -285,6 +285,17 @@ export async function searchMulti(query: string, page = 1) {
   )
 }
 
+/** Resuelve el ID de IMDb (tt…) a partir del ID de TMDB. Lo usan los addons Stremio. */
+export async function getImdbId(type: MediaType, id: number): Promise<string | null> {
+  const data = await tmdb<{ imdb_id?: string | null }>(
+    `/${type}/${id}/external_ids`,
+    {},
+    60 * 60 * 24,
+  )
+  const imdbId = data?.imdb_id?.trim() ?? ""
+  return /^tt\d+$/.test(imdbId) ? imdbId : null
+}
+
 export async function getGenres(type: MediaType = "movie") {
   const data = await tmdb<{ genres: { id: number; name: string }[] }>(
     `/genre/${type}/list`,

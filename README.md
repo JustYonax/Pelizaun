@@ -24,7 +24,13 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Learn More
+## Addons
+
+Pelizaun acepta manifiestos **Pelizaun** y **Stremio**. La guía completa está en [`docs/addons.md`](docs/addons.md).
+
+- Instala addons en `/addons`.
+- La búsqueda (`/api/search`) usa TMDB.
+- Las fuentes de vídeo se resuelven en `/api/streams` al abrir un título.
 
 To learn more, take a look at the following resources:
 

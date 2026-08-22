@@ -1,4 +1,5 @@
 import { getStreamOptions } from "@/lib/streams"
+import { getImdbId } from "@/lib/tmdb"
 import type { MediaType } from "@/lib/types"
 
 function parseMediaType(value: string | null): MediaType | null {
@@ -22,15 +23,20 @@ export async function GET(request: Request) {
   const addonUrls = url.searchParams.getAll("addon").slice(0, 10)
 
   if (!mediaType || Number.isNaN(id) || id <= 0) {
-    return Response.json({ streams: [] }, { status: 400 })
+    return Response.json({ streams: [], warning: "Parámetros inválidos." }, { status: 400 })
   }
 
-  const result = await getStreamOptions({
-    mediaType,
-    id,
-    season,
-    episode,
-  }, addonUrls)
+  const imdbId = await getImdbId(mediaType, id)
+  const result = await getStreamOptions(
+    {
+      mediaType,
+      id,
+      imdbId,
+      season,
+      episode,
+    },
+    addonUrls,
+  )
 
-  return Response.json(result)
+  return Response.json({ ...result, imdbId })
 }

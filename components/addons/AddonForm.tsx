@@ -1,57 +1,73 @@
-// components/addons/AddonForm.tsx
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
+"use client"
+
+import { useState } from "react"
+import { Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface AddonFormProps {
-  onInstall: (url: string) => Promise<void>;
-  isLoading: boolean;
+  onInstall: (url: string) => Promise<unknown>
+  isLoading: boolean
 }
 
 export function AddonForm({ onInstall, isLoading }: AddonFormProps) {
-  const [url, setUrl] = useState('');
-  const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
+  const [url, setUrl] = useState("")
+  const [open, setOpen] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError("")
     try {
-      await onInstall(url);
-      setUrl('');
-      setOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al instalar');
+      await onInstall(url.trim())
+      setUrl("")
+      setOpen(false)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Error al instalar")
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Agregar Addon
-        </Button>
+      <DialogTrigger render={<Button />}>
+        <Plus data-icon="inline-start" />
+        Agregar addon
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Instalar Nuevo Addon</DialogTitle>
+          <DialogTitle>Instalar addon</DialogTitle>
+          <DialogDescription>
+            Pega la URL HTTPS del manifest (Pelizaun o Stremio). El servidor valida el
+            manifiesto para evitar CORS y direcciones privadas.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <Input
-            placeholder="https://ejemplo.com/manifest.json"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            disabled={isLoading}
-          />
-          {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-          <Button type="submit" className="mt-4" disabled={isLoading}>
-            {isLoading ? 'Instalando...' : 'Instalar'}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="addon-url">URL del manifest</Label>
+            <Input
+              id="addon-url"
+              placeholder="https://ejemplo.com/manifest.json"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              disabled={isLoading}
+              autoComplete="off"
+            />
+          </div>
+          {error ? <p className="text-destructive text-sm">{error}</p> : null}
+          <Button type="submit" disabled={isLoading || !url.trim()}>
+            {isLoading ? "Instalando…" : "Instalar"}
           </Button>
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

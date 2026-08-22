@@ -5,7 +5,7 @@ import Image from "next/image"
 import useSWR from "swr"
 import { Radio, Search } from "lucide-react"
 import type { LiveChannel } from "@/lib/addon-protocol"
-import { readCustomAddons } from "@/lib/addon-protocol"
+import { addonProvides, readCustomAddons } from "@/lib/addon-protocol"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
@@ -16,7 +16,7 @@ export function LiveTv() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   useEffect(() => {
-    const sync = () => setAddonUrls(readCustomAddons().filter((addon) => addon.enabled && addon.capabilities.includes("live")).map((addon) => addon.manifestUrl))
+    const sync = () => setAddonUrls(readCustomAddons().filter((addon) => addonProvides(addon, "live")).map((addon) => addon.manifestUrl))
     sync(); window.addEventListener("pelizaun:addons-changed", sync); window.addEventListener("storage", sync)
     return () => { window.removeEventListener("pelizaun:addons-changed", sync); window.removeEventListener("storage", sync) }
   }, [])

@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Activity, KeyRound, Plus, Radio, ShieldCheck, Timer, Trash2 } from "lucide-react"
+import { Activity, KeyRound, RefreshCw, ShieldCheck, Timer } from "lucide-react"
 import { toast } from "sonner"
 import {
   ADDON_CATEGORIES,
@@ -10,17 +9,15 @@ import {
   type Addon,
   type AddonCategory,
 } from "@/lib/addons"
+import { useAddons } from "@/lib/hooks/useAddons"
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  readCustomAddons,
-  writeCustomAddons,
-  type CustomAddon,
-  type PelizaunManifest,
-} from "@/lib/addon-protocol"
+import { AddonCard } from "@/components/addons/AddonCard"
+import { AddonForm } from "@/components/addons/AddonForm"
+import { useState } from "react"
 
 const CATEGORY_ORDER: AddonCategory[] = [
   "catalogo",
@@ -50,7 +47,7 @@ function StatCard({
   )
 }
 
-function AddonCard({ addon, onToggle }: { addon: Addon; onToggle: (id: string) => void }) {
+function OfficialAddonCard({ addon, onToggle }: { addon: Addon; onToggle: (id: string) => void }) {
   const style = STATUS_STYLES[addon.status]
 
   return (
@@ -104,137 +101,152 @@ function AddonCard({ addon, onToggle }: { addon: Addon; onToggle: (id: string) =
 }
 
 export function AddonsBoard() {
-  const [addons, setAddons] = useState(ADDONS)
-  const [customAddons, setCustomAddons] = useState<CustomAddon[]>([])
+  const [officialAddons, setOfficialAddons] = useState(ADDONS)
   const [manifestUrl, setManifestUrl] = useState("")
-  const [installing, setInstalling] = useState(false)
-
-  useEffect(() => setCustomAddons(readCustomAddons()), [])
-
-  const persistCustom = (next: CustomAddon[]) => {
-    setCustomAddons(next)
-    writeCustomAddons(next)
-  }
+  const {
+    addons,
+    installing,
+    checkingUpdates,
+    updates,
+    installAddon,
+    removeAddon,
+    toggleAddon,
+    reorderAddon,
+    saveConfig,
+    updateAddon,
+    checkUpdates,
+  } = useAddons()
 
   const install = async () => {
     if (!manifestUrl.trim()) return
-    setInstalling(true)
     try {
-      const response = await fetch("/api/addons/inspect", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: manifestUrl.trim() }),
-      })
-      const result = await response.json() as {
-        manifest?: PelizaunManifest
-        manifestUrl?: string
-        error?: string
-      }
-      if (!response.ok || !result.manifest || !result.manifestUrl) {
-        throw new Error(result.error ?? "No se pudo validar el addon")
-      }
-      const addon: CustomAddon = {
-        id: result.manifest.id,
-        name: result.manifest.name,
-        description: result.manifest.description ?? "Addon personalizado",
-        version: result.manifest.version,
-        manifestUrl: result.manifestUrl,
-        capabilities: result.manifest.capabilities,
-        enabled: true,
-      }
-      persistCustom([addon, ...customAddons.filter((item) => item.id !== addon.id)])
+      const addon = await installAddon(manifestUrl.trim())
       setManifestUrl("")
       toast.success("Addon instalado", { description: addon.name })
     } catch (error) {
       toast.error("No se pudo instalar", { description: (error as Error).message })
-    } finally {
-      setInstalling(false)
     }
   }
 
-  const toggle = (id: string) => {
-    setAddons((prev) =>
-      prev.map((a) => {
-        if (a.id !== id) return a
-        const next = !a.enabled
-        toast(next ? "Addon activado" : "Addon desactivado", { description: a.name })
-        return { ...a, enabled: next }
+  const toggleOfficial = (id: string) => {
+    setOfficialAddons((prev) =>
+      prev.map((addon) => {
+        if (addon.id !== id) return addon
+        const next = !addon.enabled
+        toast(next ? "Addon activado" : "Addon desactivado", { description: addon.name })
+        return { ...addon, enabled: next }
       }),
     )
   }
 
-  const operativo = addons.filter((a) => a.status === "operativo").length
-  const degradado = addons.filter((a) => a.status === "degradado").length
-  const caido = addons.filter((a) => a.status === "caido").length
+  const operativo = officialAddons.filter((addon) => addon.status === "operativo").length
+  const degradado = officialAddons.filter((addon) => addon.status === "degradado").length
+  const caido = officialAddons.filter((addon) => addon.status === "caido").length
 
   return (
     <div className="flex flex-col gap-10">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Addons totales" value={addons.length + customAddons.length} />
+        <StatCard label="Addons totales" value={officialAddons.length + addons.length} />
         <StatCard label="Operativos" value={operativo} tone="text-[var(--success)]" />
         <StatCard label="Degradados" value={degradado} tone="text-[var(--warning)]" />
         <StatCard label="Caídos" value={caido} tone="text-destructive" />
       </div>
 
       <section className="glass flex flex-col gap-4 rounded-2xl p-5">
-        <div>
-          <h2 className="font-display text-lg font-semibold">Instalar addon</h2>
-          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-            Pega un manifest PelisZaun HTTPS. Puede aportar streams directos, canales en vivo o ambos.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Instalar addon</h2>
+            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+              Pega un manifest HTTPS de Pelizaun o Stremio. Puede aportar streams HTTPS
+              directos, canales en vivo o ambos.
+            </p>
+          </div>
+          <AddonForm
+            onInstall={async (url) => {
+              const addon = await installAddon(url)
+              toast.success("Addon instalado", { description: addon.name })
+            }}
+            isLoading={installing}
+          />
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={manifestUrl}
             onChange={(event) => setManifestUrl(event.target.value)}
-            onKeyDown={(event) => { if (event.key === "Enter") void install() }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") void install()
+            }}
             placeholder="https://proveedor.example/manifest.json"
             className="h-10 flex-1"
           />
           <Button onClick={() => void install()} disabled={installing || !manifestUrl.trim()} className="h-10">
-            <Plus data-icon="inline-start" />
             {installing ? "Validando…" : "Instalar"}
           </Button>
         </div>
         <p className="text-muted-foreground text-[11px]">
-          Se rechazan torrents, magnets, direcciones privadas y respuestas que no sean streams HTTPS directos.
+          Se aceptan streams HTTPS (incluido Debrid). Los magnets y torrents se listan
+          como no reproducibles en el navegador.
         </p>
       </section>
 
-      {customAddons.length ? (
+      {addons.length ? (
         <section className="flex flex-col gap-4">
-          <h2 className="font-display text-lg font-semibold sm:text-xl">Mis addons</h2>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-semibold sm:text-xl">Mis addons</h2>
+              <p className="text-muted-foreground mt-1 text-xs">
+                El orden es la prioridad: el primero se consulta primero al buscar fuentes.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={checkingUpdates}
+              onClick={async () => {
+                try {
+                  const found = await checkUpdates()
+                  const count = Object.keys(found).length
+                  toast(
+                    count ? `${count} actualización${count === 1 ? "" : "es"} disponible${count === 1 ? "" : "s"}` : "Todo está al día",
+                  )
+                } catch (error) {
+                  toast.error("No se pudieron comprobar actualizaciones", {
+                    description: (error as Error).message,
+                  })
+                }
+              }}
+            >
+              <RefreshCw data-icon="inline-start" className={checkingUpdates ? "animate-spin" : undefined} />
+              {checkingUpdates ? "Comprobando…" : "Buscar actualizaciones"}
+            </Button>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {customAddons.map((addon) => (
-              <div key={addon.id} className="glass flex flex-col gap-4 rounded-2xl p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold">{addon.name}</h3>
-                    <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{addon.description}</p>
-                  </div>
-                  <Switch
-                    checked={addon.enabled}
-                    onCheckedChange={() => persistCustom(customAddons.map((item) =>
-                      item.id === addon.id ? { ...item, enabled: !item.enabled } : item))}
-                  />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {addon.capabilities.includes("streams") ? <Badge variant="secondary">Películas y series</Badge> : null}
-                  {addon.capabilities.includes("live") ? <Badge variant="secondary"><Radio /> TV en vivo</Badge> : null}
-                  <span className="text-muted-foreground ml-auto text-[10px]">v{addon.version}</span>
-                  <Button
-                    variant="ghost" size="icon-sm" aria-label={`Eliminar ${addon.name}`}
-                    onClick={() => persistCustom(customAddons.filter((item) => item.id !== addon.id))}
-                  ><Trash2 /></Button>
-                </div>
-              </div>
+            {addons.map((addon, index) => (
+              <AddonCard
+                key={addon.id}
+                addon={addon}
+                isFirst={index === 0}
+                isLast={index === addons.length - 1}
+                updateVersion={updates[addon.id]}
+                onToggle={toggleAddon}
+                onRemove={removeAddon}
+                onMove={reorderAddon}
+                onUpdate={async (id) => {
+                  const updated = await updateAddon(id)
+                  toast.success("Addon actualizado", { description: `${updated.name} v${updated.version}` })
+                }}
+                onSaveConfig={async (id, config) => {
+                  await saveConfig(id, config)
+                  toast.success("Configuración guardada")
+                }}
+              />
             ))}
           </div>
         </section>
       ) : null}
 
       {CATEGORY_ORDER.map((category) => {
-        const items = addons.filter((a) => a.category === category)
+        const items = officialAddons.filter((addon) => addon.category === category)
         if (!items.length) return null
         return (
           <section key={category} className="flex flex-col gap-4">
@@ -243,7 +255,7 @@ export function AddonsBoard() {
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((addon) => (
-                <AddonCard key={addon.id} addon={addon} onToggle={toggle} />
+                <OfficialAddonCard key={addon.id} addon={addon} onToggle={toggleOfficial} />
               ))}
             </div>
           </section>

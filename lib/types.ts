@@ -91,33 +91,9 @@ export type WatchProvider = {
   name: string
   logo: string | null
 }
-// lib/types.ts
-export interface Manifest {
-  id: string;
-  name: string;
-  version: string;
-  resources: string[]; // Ej: ["stream", "catalog"]
-  types: string[]; // Ej: ["movie", "series"]
-  description?: string;
-  // Añade más campos según necesites
-}
 
-export interface InstalledAddon {
-  id: string;
-  manifest: Manifest;
-  url: string; // URL del manifest.json
-  isActive: boolean;
-  installedAt: string;
-  config?: Record<string, any>;
-}
+export type StreamKind = "http" | "embed" | "unavailable"
 
-export interface Stream {
-  title: string; // Ej: "1080p"
-  url?: string;
-  infoHash?: string;
-  fileIdx?: number;
-  // ... otros campos de Stremio
-}
 export type StreamOption = {
   id: string
   provider: string
@@ -129,4 +105,7 @@ export type StreamOption = {
   details?: string
   source?: string
   isSubscription?: boolean
+  size?: string | null
+  playable?: boolean
+  kind?: StreamKind
 }
