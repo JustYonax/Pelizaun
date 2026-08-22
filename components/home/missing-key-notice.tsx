@@ -11,7 +11,7 @@ export function MissingKeyNotice() {
           </EmptyMedia>
           <EmptyTitle>Falta la clave de TMDB</EmptyTitle>
           <EmptyDescription>
-            Nebula usa el catálogo de The Movie Database para poblar todo el contenido. Añade la variable de entorno
+            PelisZaun usa el catálogo de The Movie Database para poblar todo el contenido. Añade la variable de entorno
             {" "}
             <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">TMDB_API_KEY</code>{" "}
             en los ajustes del proyecto y recarga esta página.

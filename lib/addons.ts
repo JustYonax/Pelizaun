@@ -60,8 +60,8 @@ export const ADDONS: Addon[] = [
     endpoint: "https://api.themoviedb.org/3",
   },
   {
-    id: "nebula-catalog",
-    name: "Nebula Catalog",
+    id: "pelizaun-catalog",
+    name: "PelisZaun Catalog",
     description:
       "Catálogo agregado propio: mezcla tendencias, estrenos y colecciones curadas por el equipo.",
     category: "catalogo",

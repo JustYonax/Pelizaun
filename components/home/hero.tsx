@@ -103,6 +103,7 @@ export function Hero({ item }: { item: MediaDetail }) {
           </Button>
           <FavoriteButton
             id={item.id}
+            mediaType={item.mediaType}
             title={item.title}
             className="h-11 rounded-xl px-5"
           />

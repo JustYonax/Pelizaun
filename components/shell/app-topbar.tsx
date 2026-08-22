@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SidebarContent } from "@/components/shell/app-sidebar"
-import { NebulaMark } from "@/components/shell/nebula-mark"
+import { PelizaunMark } from "@/components/shell/pelizaun-mark"
 import { SmartSearch } from "@/components/search/smart-search"
 
 export function AppTopbar() {
@@ -40,8 +40,8 @@ export function AppTopbar() {
         </Sheet>
 
         <Link href="/" className="flex items-center gap-2 lg:hidden">
-          <NebulaMark className="size-8" />
-          <span className="font-display text-sm font-semibold">Nebula</span>
+          <PelizaunMark className="size-8" />
+          <span className="font-display text-sm font-semibold">PelisZaun</span>
         </Link>
 
         <div className="hidden max-w-md flex-1 sm:block">
@@ -68,12 +68,12 @@ export function AppTopbar() {
               <Avatar className="size-8">
                 <AvatarImage src="/placeholder-user.jpg" alt="" />
                 <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
-                  AN
+                  YM
                 </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel>Alex Nebula</DropdownMenuLabel>
+              <DropdownMenuLabel>Yonaiky</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem render={<Link href="/perfil" />}>

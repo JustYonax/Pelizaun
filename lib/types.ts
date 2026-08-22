@@ -82,4 +82,25 @@ export type MediaDetail = MediaItem & {
   seasons: SeasonSummary[]
   reviews: Review[]
   similar: MediaItem[]
+  providers: WatchProvider[]
+  providersLink: string | null
+}
+
+export type WatchProvider = {
+  id: number
+  name: string
+  logo: string | null
+}
+
+export type StreamOption = {
+  id: string
+  provider: string
+  label: string
+  quality: string
+  language: string | null
+  url: string
+  external: boolean
+  details?: string
+  source?: string
+  isSubscription?: boolean
 }

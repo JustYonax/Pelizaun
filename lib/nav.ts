@@ -1,10 +1,14 @@
 import {
+  Clapperboard,
   Compass,
-  LayoutDashboard,
+  Heart,
+  Home,
   Puzzle,
-  Search,
+  Radio,
   Settings,
   Sparkles,
+  TrendingUp,
+  Tv,
   User,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -16,31 +20,32 @@ export type NavItem = {
 }
 
 export type NavGroup = {
-  label: string
+  label?: string
   items: NavItem[]
 }
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Descubrir",
     items: [
-      { href: "/", label: "Inicio", icon: Sparkles },
-      { href: "/explorar", label: "Explorador", icon: Compass },
-      { href: "/buscar", label: "Búsqueda", icon: Search },
+      { href: "/", label: "Inicio", icon: Home },
+      { href: "/explorar", label: "Explorar", icon: Compass },
+      { href: "/explorar?sort=popularity.desc", label: "Tendencias", icon: TrendingUp },
+      { href: "/explorar?type=movie", label: "Películas", icon: Clapperboard },
+      { href: "/explorar?type=tv", label: "Series", icon: Tv },
+      { href: "/en-vivo", label: "TV en vivo", icon: Radio },
+      { href: "/explorar?type=tv&genre=16&language=ja", label: "Anime", icon: Sparkles },
+      { href: "/perfil?tab=watchlist", label: "Mi Lista", icon: Heart },
     ],
   },
   {
-    label: "Biblioteca",
-    items: [
-      { href: "/perfil", label: "Mi perfil", icon: User },
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    ],
+    label: "Herramientas",
+    items: [{ href: "/addons", label: "Addons y APIs", icon: Puzzle }],
   },
   {
-    label: "Sistema",
+    label: "Ajustes",
     items: [
-      { href: "/addons", label: "Addons y APIs", icon: Puzzle },
       { href: "/configuracion", label: "Configuración", icon: Settings },
+      { href: "/perfil", label: "Perfil", icon: User },
     ],
   },
 ]

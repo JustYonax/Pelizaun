@@ -357,6 +357,15 @@ type RawDetail = RawItem & {
     }[]
   }
   translations?: { translations?: { english_name: string; iso_639_1: string }[] }
+  "watch/providers"?: {
+    results?: Record<
+      string,
+      {
+        link?: string
+        flatrate?: { provider_id: number; provider_name: string; logo_path: string }[]
+      }
+    >
+  }
 }
 
 export async function getDetail(
@@ -365,8 +374,8 @@ export async function getDetail(
 ): Promise<MediaDetail | null> {
   const append =
     type === "movie"
-      ? "credits,videos,images,recommendations,similar,reviews,translations"
-      : "aggregate_credits,credits,videos,images,recommendations,similar,reviews,translations"
+      ? "credits,videos,images,recommendations,similar,reviews,translations,watch/providers"
+      : "aggregate_credits,credits,videos,images,recommendations,similar,reviews,translations,watch/providers"
 
   const raw = await tmdb<RawDetail>(
     `/${type}/${id}`,
@@ -376,6 +385,15 @@ export async function getDetail(
   if (!raw) return null
 
   const base = normalize({ ...raw, media_type: type }, type)
+
+  const regionProviders = raw["watch/providers"]?.results?.ES
+  const providers = (regionProviders?.flatrate ?? [])
+    .map((p) => ({
+      id: p.provider_id,
+      name: p.provider_name,
+      logo: p.logo_path ? `${IMG}/w92${p.logo_path}` : null,
+    }))
+    .filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i)
 
   const cast: PersonCredit[] = (
     raw.aggregate_credits?.cast ??
@@ -482,6 +500,8 @@ export async function getDetail(
     ]
       .filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i)
       .slice(0, 14),
+    providers,
+    providersLink: regionProviders?.link ?? null,
   }
 }
 

@@ -1,16 +1,17 @@
 import { getDetail, getTrending } from "@/lib/tmdb"
-import { Hero } from "@/components/home/hero"
+import { HeroCarousel } from "@/components/home/hero-carousel"
 
-/** Elige el título destacado con backdrop y buena valoración. */
+/** Elige hasta 5 títulos destacados con backdrop y buena valoración para el carrusel. */
 export async function HeroSection() {
   const trending = await getTrending("week")
-  const candidate =
-    trending.find((item) => item.backdrop && item.rating >= 6.5) ?? trending[0]
+  const qualified = trending.filter((item) => item.backdrop && item.rating >= 6.5)
+  const candidates = (qualified.length ? qualified : trending).slice(0, 5)
 
-  if (!candidate) return null
+  const details = (
+    await Promise.all(candidates.map((item) => getDetail(item.mediaType, item.id)))
+  ).filter((item) => item !== null)
 
-  const detail = await getDetail(candidate.mediaType, candidate.id)
-  if (!detail) return null
+  if (!details.length) return null
 
-  return <Hero item={detail} />
+  return <HeroCarousel items={details} />
 }

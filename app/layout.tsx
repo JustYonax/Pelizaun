@@ -10,13 +10,13 @@ const _sora = Sora({ subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
   title: {
-    default: 'Nebula — Streaming y descubrimiento',
-    template: '%s · Nebula',
+    default: 'PelisZaun — Streaming y descubrimiento',
+    template: '%s · PelisZaun',
   },
   description:
-    'Nebula es una plataforma premium de streaming y descubrimiento de películas y series: catálogos, trailers, subtítulos y addons en una sola interfaz.',
+    'PelisZaun es una plataforma premium de streaming y descubrimiento de películas y series: catálogos, trailers, subtítulos y addons en una sola interfaz.',
   generator: 'v0.app',
-  applicationName: 'Nebula',
+  applicationName: 'PelisZaun',
   keywords: ['streaming', 'películas', 'series', 'catálogo', 'trailers', 'addons'],
   icons: {
     icon: [
