@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Sora } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { ClientHydration } from '@/components/client-hydration'
 import './globals.css'
 
 const _inter = Inter({ subsets: ['latin'], display: 'swap' })
@@ -41,8 +42,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className="dark bg-background">
-      <body className="bg-background text-foreground antialiased">
+    <html lang="es" className="dark bg-background" suppressHydrationWarning>
+      <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var a=["bis_skin_checked","bis_register"];function s(r){if(!r||r.nodeType!==1)return;a.forEach(function(n){if(r.hasAttribute&&r.hasAttribute(n))r.removeAttribute(n);r.querySelectorAll&&r.querySelectorAll("["+n+"]").forEach(function(e){e.removeAttribute(n)})})}s(document.documentElement);new MutationObserver(function(ms){ms.forEach(function(m){if(m.type==="attributes"&&a.indexOf(m.attributeName)>=0){m.target.removeAttribute(m.attributeName)}else if(m.addedNodes){m.addedNodes.forEach(s)}})}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:a})})();`,
+          }}
+        />
+        <ClientHydration />
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster position="bottom-right" />
         {process.env.NODE_ENV === 'production' && <Analytics />}

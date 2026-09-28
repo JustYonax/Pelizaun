@@ -13,6 +13,7 @@ import {
   extractQuality,
   extractSize,
   qualityRank,
+  browserPlayRank,
   stremioStreamUrl,
 } from "@/lib/stremio"
 
@@ -31,10 +32,16 @@ export type StreamResult = {
 
 type RawStream = Record<string, unknown>
 
+function streamText(stream: StreamOption) {
+  return [stream.label, stream.details, stream.quality, stream.size].filter(Boolean).join(" ")
+}
+
 function sortStreams(streams: StreamOption[]) {
   return [...streams].sort((left, right) => {
     const playableDelta = Number(Boolean(right.playable)) - Number(Boolean(left.playable))
     if (playableDelta) return playableDelta
+    const playRank = browserPlayRank(streamText(right)) - browserPlayRank(streamText(left))
+    if (playRank) return playRank
     return qualityRank(right.quality) - qualityRank(left.quality)
   })
 }
@@ -42,6 +49,29 @@ function sortStreams(streams: StreamOption[]) {
 function streamKindFromUrl(url: string, embed: boolean): StreamKind {
   if (embed) return "embed"
   return "http"
+}
+
+function normalizeInfoHash(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined
+  const hash = value.trim()
+  if (/^[a-fA-F0-9]{40}$/.test(hash) || /^[A-Z2-7]{32}$/i.test(hash)) return hash
+  return undefined
+}
+
+function magnetFromRaw(raw: RawStream): string | undefined {
+  if (typeof raw.magnet === "string" && raw.magnet.startsWith("magnet:")) return raw.magnet
+  if (typeof raw.url === "string" && raw.url.startsWith("magnet:")) return raw.url
+  return undefined
+}
+
+function extractTrackers(raw: RawStream): string[] {
+  const sources = Array.isArray(raw.sources) ? raw.sources : []
+  return sources.flatMap((source) => {
+    if (typeof source !== "string") return []
+    const value = source.startsWith("tracker:") ? source.slice("tracker:".length) : source
+    if (/^(udp|http|https|ws|wss):\/\//i.test(value)) return [value]
+    return []
+  })
 }
 
 function mapStremioStream(
@@ -64,30 +94,70 @@ function mapStremioStream(
       ? `https://www.youtube-nocookie.com/embed/${ytId}`
       : isPlayableHttpUrl(raw.url)
     : isPlayableHttpUrl(raw.url)
-  const isTorrent = typeof raw.infoHash === "string" || typeof raw.magnet === "string" || hints.notWebReady === true
-  const playable = Boolean(httpUrl) && !isTorrent
+  const infoHash = normalizeInfoHash(raw.infoHash)
+  const magnet = magnetFromRaw(raw)
+  const isTorrent = Boolean(infoHash || magnet)
+  const fileIdx = typeof raw.fileIdx === "number" && Number.isInteger(raw.fileIdx) ? raw.fileIdx : undefined
 
   if (!text && !httpUrl && !isTorrent) return null
 
-  return {
-    id: `${addonId}-${String(raw.url ?? raw.infoHash ?? raw.ytId ?? index)}`.slice(0, 180),
-    provider: addonName,
-    label: (titleParts[0] || "Reproducir").slice(0, 120),
-    quality: extractQuality(text),
-    language: extractLanguage(text),
-    url: playable && httpUrl ? httpUrl : "",
-    external: true,
-    details: isTorrent
-      ? "Este origen no es un stream HTTPS directo y no se puede reproducir en el navegador."
-      : typeof raw.description === "string"
-        ? raw.description.slice(0, 200)
-        : titleParts[1],
-    source: addonName,
-    isSubscription: Boolean(raw.isSubscription),
-    size: extractSize(text),
-    playable,
-    kind: playable ? streamKindFromUrl(httpUrl ?? "", embed) : "unavailable",
+  if (httpUrl) {
+    return {
+      id: `${addonId}-${String(raw.url ?? raw.ytId ?? index)}`.slice(0, 180),
+      provider: addonName,
+      label: (titleParts[0] || "Reproducir").slice(0, 120),
+      quality: extractQuality(text),
+      language: extractLanguage(text),
+      url: httpUrl,
+      external: true,
+      details: typeof raw.description === "string" ? raw.description.slice(0, 200) : titleParts[1],
+      source: addonName,
+      isSubscription: Boolean(raw.isSubscription),
+      size: extractSize(text),
+      playable: true,
+      kind: streamKindFromUrl(httpUrl, embed),
+    }
   }
+
+  if (isTorrent) {
+    return {
+      id: `${addonId}-${String(infoHash ?? magnet ?? index)}`.slice(0, 180),
+      provider: addonName,
+      label: (titleParts[0] || "Reproducir").slice(0, 120),
+      quality: extractQuality(text),
+      language: extractLanguage(text),
+      url: "",
+      external: true,
+      details: titleParts[1] ?? "Reproducción P2P (WebTorrent)",
+      source: addonName,
+      isSubscription: Boolean(raw.isSubscription),
+      size: extractSize(text),
+      playable: true,
+      kind: "torrent",
+      infoHash,
+      magnet,
+      fileIdx,
+      trackers: extractTrackers(raw),
+    }
+  }
+
+  if (hints.notWebReady === true) {
+    return {
+      id: `${addonId}-${String(index)}`.slice(0, 180),
+      provider: addonName,
+      label: (titleParts[0] || "Origen no compatible").slice(0, 120),
+      quality: extractQuality(text),
+      language: extractLanguage(text),
+      url: "",
+      external: true,
+      details: "Este origen no se puede reproducir en el navegador.",
+      source: addonName,
+      playable: false,
+      kind: "unavailable",
+    }
+  }
+
+  return null
 }
 
 async function streamsFromPelizaun(inspected: InspectedAddon, query: StreamQuery) {

@@ -92,7 +92,7 @@ export type WatchProvider = {
   logo: string | null
 }
 
-export type StreamKind = "http" | "embed" | "unavailable"
+export type StreamKind = "http" | "embed" | "torrent" | "unavailable"
 
 export type StreamOption = {
   id: string
@@ -108,4 +108,8 @@ export type StreamOption = {
   size?: string | null
   playable?: boolean
   kind?: StreamKind
+  infoHash?: string
+  magnet?: string
+  fileIdx?: number
+  trackers?: string[]
 }

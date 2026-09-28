@@ -24,6 +24,7 @@ type Props = {
   episode: number | null
   onSeasonChange: (season: number) => void
   onEpisodeChange: (episode: number) => void
+  variant?: "card" | "overlay"
 }
 
 export function EpisodePicker({
@@ -33,6 +34,7 @@ export function EpisodePicker({
   episode,
   onSeasonChange,
   onEpisodeChange,
+  variant = "card",
 }: Props) {
   const { data, isLoading } = useSWR(
     `/api/temporada?id=${seriesId}&season=${season}`,
@@ -42,9 +44,14 @@ export function EpisodePicker({
   const episodes = data?.episodes ?? []
 
   return (
-    <div className="glass flex max-h-[560px] flex-col gap-3 rounded-2xl p-4">
+    <div
+      className={cn(
+        "flex flex-col gap-3",
+        variant === "card" ? "glass max-h-[560px] rounded-2xl p-4" : "h-full",
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Episodios</h2>
+        {variant === "card" ? <h2 className="text-sm font-semibold">Episodios</h2> : <span />}
         <Select value={String(season)} onValueChange={(v) => onSeasonChange(Number(v))}>
           <SelectTrigger className="w-40" size="sm">
             <SelectValue>{() => seasons.find((s) => s.seasonNumber === season)?.name}</SelectValue>
@@ -66,7 +73,7 @@ export function EpisodePicker({
             Cargando episodios…
           </div>
         ) : episodes.length ? (
-          episodes.map((ep) => {
+          episodes.map((ep, index) => {
             const active = ep.number === episode
             return (
               <button
@@ -80,7 +87,15 @@ export function EpisodePicker({
               >
                 <div className="bg-muted relative aspect-video w-24 shrink-0 overflow-hidden rounded-lg">
                   {ep.still ? (
-                    <Image src={ep.still} alt="" fill sizes="96px" className="object-cover" />
+                    <Image
+                      src={ep.still}
+                      alt=""
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                      loading={index === 0 ? "eager" : "lazy"}
+                      priority={index === 0}
+                    />
                   ) : (
                     <div className="text-muted-foreground flex h-full items-center justify-center">
                       <Film className="size-4" />

@@ -245,6 +245,18 @@ export function qualityRank(quality: string) {
   return 0
 }
 
+/** Chrome pinta h264/mp4; HEVC/MKV/HDR suele ir con audio y pantalla negra. */
+export function browserPlayRank(text: string) {
+  const value = text.toLowerCase()
+  let score = 1
+  if (/\b(h264|x264|avc)\b/.test(value) || /\.mp4\b/.test(value)) score += 4
+  if (/\b(vp9|av1|webm)\b/.test(value)) score += 2
+  if (/\b(hevc|x265|h265)\b/.test(value)) score -= 4
+  if (/\.mkv\b/.test(value) || /\bmkv\b/.test(value)) score -= 1
+  if (/\b(hdr10|hdr|dolby.?vision|\bdv\b)\b/.test(value)) score -= 2
+  return score
+}
+
 export function addonLog(scope: string, message: string, extra?: unknown) {
   if (extra !== undefined) {
     console.warn(`[pelizaun:${scope}] ${message}`, extra)

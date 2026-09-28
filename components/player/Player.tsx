@@ -1,8 +1,10 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Radio } from "lucide-react"
 import type { StreamOption } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { PlayerPlaceholder } from "@/components/player/player-placeholder"
 
 export function Player({
   stream,
@@ -13,6 +15,16 @@ export function Player({
   title: string
   emptyMessage?: string
 }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return <PlayerPlaceholder />
+  }
+
   const playable = Boolean(stream?.playable !== false && stream?.url)
   const isEmbed = stream?.kind === "embed" || Boolean(stream?.url.includes("youtube-nocookie.com/embed/"))
 

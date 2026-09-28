@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 import { getDetail } from "@/lib/tmdb"
 import type { MediaType } from "@/lib/types"
 import { AppShell } from "@/components/shell/app-shell"
-import { WatchView } from "@/components/watch/watch-view"
+import { WatchViewClient } from "@/components/watch/watch-view-client"
 import { Spinner } from "@/components/ui/spinner"
 
 type Params = { type: string; id: string }
@@ -44,7 +44,7 @@ export default async function WatchPage({ params }: { params: Promise<Params> })
           </div>
         }
       >
-        <WatchView item={detail} />
+        <WatchViewClient item={detail} />
       </Suspense>
     </AppShell>
   )

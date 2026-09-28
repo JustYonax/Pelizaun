@@ -6,6 +6,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  serverExternalPackages: [
+    "webtorrent",
+    "bittorrent-dht",
+    "ut_pex",
+    "@silentbot1/nat-api",
+    "fs-chunk-store",
+    "ffmpeg-static",
+  ],
   async headers() {
     return [
       {
@@ -16,18 +24,20 @@ const nextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(), microphone=(), geolocation=(), autoplay=(self)',
           },
           {
             key: 'Content-Security-Policy-Report-Only',
             value: [
               "default-src 'self'",
               "img-src 'self' data: https:",
-              "media-src 'self' https: blob:",
+              "media-src 'self' https: blob: http://127.0.0.1:*",
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'",
+              "worker-src 'self' blob:",
               "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
-              "connect-src 'self' https:",
+              "connect-src 'self' https: wss: blob:",
             ].join('; '),
           },
         ],
